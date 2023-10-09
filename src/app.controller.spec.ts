@@ -1,22 +1,61 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { EventHubService } from './modules/event_hub/event_hub.service';
+import { ServiceBusService } from './modules/service_bus/service_bus.service';
+
+// Mock EventHubService and ServiceBusService
+const mockEventHubService = {
+  ReceiveFromEventHub: jest.fn(),
+};
+
+const mockServiceBusService = {
+  receiveFromServiceBusQueue: jest.fn(),
+};
 
 describe('AppController', () => {
-  let appController: AppController;
+  let controller: AppController;
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        {
+          provide: EventHubService,
+          useValue: mockEventHubService,
+        },
+        {
+          provide: ServiceBusService,
+          useValue: mockServiceBusService,
+        },
+      ],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    controller = module.get<AppController>(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('getHello', () => {
+    it('should call ReceiveFromEventHub and receiveFromServiceBusQueue', async () => {
+      // Execute the method
+      await controller.getHello();
+
+      // Assert that methods were called
+      expect(mockEventHubService.ReceiveFromEventHub).toHaveBeenCalledTimes(1);
+      expect(
+        mockServiceBusService.receiveFromServiceBusQueue,
+      ).toHaveBeenCalledTimes(3);
+      expect(
+        mockServiceBusService.receiveFromServiceBusQueue,
+      ).toHaveBeenCalledWith('management_messages');
+      expect(
+        mockServiceBusService.receiveFromServiceBusQueue,
+      ).toHaveBeenCalledWith('support_messages');
+      expect(
+        mockServiceBusService.receiveFromServiceBusQueue,
+      ).toHaveBeenCalledWith('teams_messages');
     });
   });
 });

@@ -1,19 +1,24 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-import {MongodbService} from './mongodb/mongodb.service';
-import {EventHubService} from './event_hub/event_hub.service'
+import { EventHubService } from './modules/event_hub/event_hub.service';
+import { ServiceBusService } from './modules/service_bus/service_bus.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService,private readonly mongoDBService:MongodbService,private readonly eventHubService:EventHubService ) {}
+  constructor(
+    private readonly eventHubService: EventHubService,
+    private readonly serviceBusService: ServiceBusService,
+  ) {}
 
   @Get()
   async getHello() {
-   const data = await this.eventHubService.connectToEventHub();
-   console.log(data);
-   
-    await this.mongoDBService.connectToMongoDB();
-    return this.appService.getHello();
+    await this.eventHubService.ReceiveFromEventHub();
+    const queueNames = [
+      'management_messages',
+      'support_messages',
+      'teams_messages',
+    ];
+    queueNames.forEach(async (queueName) => {
+      await this.serviceBusService.receiveFromServiceBusQueue(queueName);
+    });
   }
-
 }
